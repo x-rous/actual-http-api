@@ -443,29 +443,16 @@ async function Budget(budgetSyncId, budgetEncryptionPassword) {
   }
 
   async function exportData(budgetSyncId) {
-    const dataDir = getActualDataDir();
-    // Get the budget name safely
+    // The official API exports the budget that is currently loaded; the sync id
+    // is only used here to resolve a human readable file name.
     const budget = (await getBudgets() || [])
       .find(b => b.groupId === budgetSyncId && !!b.id);
     if (!budget) {
       throw new Error(`Budget not found for budget sync id ${budgetSyncId}`);
     }
-    let ZipArchive;
-    try {
-      // eslint-disable-next-line global-require
-      ({ ZipArchive } = require('archiver'));
-    } catch (err) {
-      ({ ZipArchive } = await import('archiver'));
-    }
-    const archive = new ZipArchive({ zlib: { level: 9 } });
-    // Add files to the archive
-    for (const file of ['db.sqlite', 'metadata.json']) {
-      archive.file(path.join(dataDir, budget.id, file), { name: file });
-    }
-    // Return archive stream and filename
     return {
       fileName: `${new Date().toISOString().split('T')[0]}-${budget.name}.zip`,
-      fileStream: archive
+      fileBuffer: Buffer.from(await actualApi.exportBudget())
     };
   }
 

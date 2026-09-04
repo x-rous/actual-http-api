@@ -10,7 +10,6 @@ jest.mock('../../src/config/config.js', () => ({
 jest.mock('dotenv');
 jest.mock('../../src/v1/actual-client-provider');
 jest.mock('../../src/utils/utils');
-jest.mock('archiver');
 jest.mock('fs');
 jest.mock('path');
 
@@ -22,13 +21,11 @@ const {
   listSubDirectories, 
   getFileContent 
 } = require('../../src/utils/utils');
-const archiver = require('archiver');
 const fs = require('fs');
 const path = require('path');
 
 describe('Budget Module', () => {
   let mockActualApi;
-  let mockArchive;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -125,6 +122,7 @@ describe('Budget Module', () => {
       }),
       getNote: jest.fn().mockResolvedValue({ id: 'cat1', note: 'Category note' }),
       updateNote: jest.fn().mockResolvedValue(undefined),
+      exportBudget: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
       shutdown: jest.fn(),
       q: jest.fn(() => ({
         filter: jest.fn().mockReturnThis(),
@@ -140,11 +138,6 @@ describe('Budget Module', () => {
       aqlQuery: jest.fn().mockResolvedValue({ data: [] }),
     };
 
-    mockArchive = {
-      file: jest.fn().mockReturnThis(),
-      finalize: jest.fn().mockResolvedValue(undefined)
-    };
-
     getActualApiClient.mockResolvedValue(mockActualApi);
     runAqlQuery.mockResolvedValue({ data: [] });
     currentLocalDate.mockReturnValue(new Date('2024-01-15'));
@@ -156,7 +149,6 @@ describe('Budget Module', () => {
       name: 'Personal Budget'
     }));
     getActualDataDir.mockReturnValue('/data/actual');
-    archiver.ZipArchive.mockImplementation(() => mockArchive);
     fs.existsSync.mockReturnValue(true);
     path.join.mockImplementation((...args) => args.join('/'));
   });
@@ -1000,11 +992,12 @@ describe('Budget Module', () => {
       budget = await Budget('sync1', undefined);
     });
 
-    it('should export budget data as zip', async () => {
+    it('should export budget data as zip via the official API', async () => {
       const result = await budget.exportData('sync1');
+      expect(mockActualApi.exportBudget).toHaveBeenCalled();
       expect(result.fileName).toContain('.zip');
-      expect(result.fileStream).toBe(mockArchive);
-      expect(mockArchive.file).toHaveBeenCalledTimes(2);
+      expect(Buffer.isBuffer(result.fileBuffer)).toBe(true);
+      expect(result.fileBuffer.equals(Buffer.from([1, 2, 3]))).toBe(true);
     });
 
     it('should throw error when budget not found for sync id', async () => {
@@ -1014,11 +1007,19 @@ describe('Budget Module', () => {
         .toThrow('Budget not found for budget sync id nonexistent');
     });
 
-    it('should include correct files in archive', async () => {
-      await budget.exportData('sync1');
-      const calls = mockArchive.file.mock.calls;
-      expect(calls[0][0]).toContain('db.sqlite');
-      expect(calls[1][0]).toContain('metadata.json');
+    it('should not export when the budget cannot be resolved', async () => {
+      mockActualApi.getBudgets.mockResolvedValueOnce([]);
+      await expect(budget.exportData('nonexistent')).rejects.toThrow();
+      expect(mockActualApi.exportBudget).not.toHaveBeenCalled();
+    });
+
+    it('should propagate export failures from the official API', async () => {
+      mockActualApi.exportBudget.mockRejectedValueOnce(
+        new Error('Error exporting budget: internal-error')
+      );
+      await expect(budget.exportData('sync1'))
+        .rejects
+        .toThrow('Error exporting budget: internal-error');
     });
 
     it('should generate correct zip filename with date and budget name', async () => {

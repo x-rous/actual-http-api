@@ -240,8 +240,8 @@ module.exports = (router) => {
    * @swagger
    * /budgets/{budgetSyncId}/export:
    *   get:
-   *     summary: "(⚠️ Unofficial) Exports the budget data as a zip file containing db.sqlite and metadata.json files."
-   *     description: "⚠️ Unofficial: Interacts with the internals of the official library APIs. It is not considered stable or secure for use and may change without notice."
+   *     summary: "(🔧 Extended) Exports the budget data as a zip file containing db.sqlite and metadata.json files."
+   *     description: "🔧 Extended: Uses the official exportBudget API, adding a dated file name derived from the budget name."
    *     tags: [Settings]
    *     security:
    *       - apiKey: []
@@ -263,14 +263,11 @@ module.exports = (router) => {
       if (!config.experimentalOperationsEnabled) {
         return res.status(501).json({ error: EXPERIMENTAL_DISABLED_MESSAGE });
       }
-      const { fileName, fileStream } = await res.locals.budget.exportData(req.params.budgetSyncId);
+      const { fileName, fileBuffer } = await res.locals.budget.exportData(req.params.budgetSyncId);
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(fileName)}`);
-      fileStream.pipe(res);
-      fileStream.finalize();
-      fileStream.on('error', err => {
-        if (!res.headersSent) res.status(500).send('Failed to generate zip');
-      });
+      res.setHeader('Content-Length', fileBuffer.length);
+      res.send(fileBuffer);
     } catch (err) {
       next(err);
     }
