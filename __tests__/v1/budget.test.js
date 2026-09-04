@@ -515,6 +515,7 @@ describe('Budget Module', () => {
         defaultCleared: true,
         dryRun: false,
         reimportDeleted: false,
+        payeeNameNormalization: 'title-case',
       });
     });
 
@@ -524,11 +525,25 @@ describe('Budget Module', () => {
         defaultCleared: false,
         dryRun: true,
         reimportDeleted: true,
+        payeeNameNormalization: 'original',
       };
 
       await budget.importTransactions('acc1', transactions, options);
 
       expect(mockActualApi.importTransactions).toHaveBeenCalledWith('acc1', transactions, options);
+    });
+
+    it('should forward payeeNameNormalization when it is the only option supplied', async () => {
+      const transactions = [{ amount: 100 }];
+
+      await budget.importTransactions('acc1', transactions, { payeeNameNormalization: 'original' });
+
+      expect(mockActualApi.importTransactions).toHaveBeenCalledWith('acc1', transactions, {
+        defaultCleared: true,
+        dryRun: false,
+        reimportDeleted: false,
+        payeeNameNormalization: 'original',
+      });
     });
 
     it('should update a transaction', async () => {

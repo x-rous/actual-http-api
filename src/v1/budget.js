@@ -166,11 +166,13 @@ async function Budget(budgetSyncId, budgetEncryptionPassword) {
     defaultCleared = true,
     dryRun = false,
     reimportDeleted = false,
+    payeeNameNormalization = 'title-case',
   } = {}) {
     return actualApi.importTransactions(accountId, transactions, {
       defaultCleared,
       dryRun,
       reimportDeleted,
+      payeeNameNormalization,
     });
   }
 

@@ -434,6 +434,7 @@ describe('Transactions Routes', () => {
         defaultCleared: true,
         dryRun: false,
         reimportDeleted: false,
+        payeeNameNormalization: 'title-case',
       });
       expect(mockRes.json).toHaveBeenCalled();
     });
@@ -456,6 +457,7 @@ describe('Transactions Routes', () => {
         defaultCleared: false,
         dryRun: true,
         reimportDeleted: true,
+        payeeNameNormalization: 'original',
       };
 
       await handler(mockReq, mockRes, mockNext);
@@ -464,8 +466,28 @@ describe('Transactions Routes', () => {
         defaultCleared: false,
         dryRun: true,
         reimportDeleted: true,
+        payeeNameNormalization: 'original',
       });
       expect(mockRes.json).toHaveBeenCalled();
+    });
+
+    it('should reject an invalid payeeNameNormalization value', async () => {
+      const transactionsModule = require('../../../src/v1/routes/transactions');
+      transactionsModule(mockRouter);
+
+      const handler = handlers['POST /budgets/:budgetSyncId/accounts/:accountId/transactions/import'];
+      mockReq.params.accountId = 'acc1';
+      mockReq.body = {
+        transactions: [{ date: '2023-08-01', amount: -50, account: 'acc1' }],
+        payeeNameNormalization: 'upper-case',
+      };
+
+      await handler(mockReq, mockRes, mockNext);
+
+      expect(mockBudget.importTransactions).not.toHaveBeenCalled();
+      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'payeeNameNormalization must be one of original, title-case',
+      }));
     });
 
     it('should reject without transactions array', async () => {
