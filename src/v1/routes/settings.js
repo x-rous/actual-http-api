@@ -193,6 +193,51 @@ module.exports = (router) => {
 
   /**
    * @swagger
+   * /budgets/{budgetSyncId}/preferences:
+   *   get:
+   *     summary: Returns the budget's synced preferences, such as its date, number and currency formats
+   *     tags: [Settings]
+   *     security:
+   *       - apiKey: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/budgetSyncId'
+   *       - $ref: '#/components/parameters/budgetEncryptionPassword'
+   *     responses:
+   *       '200':
+   *         description: The budget's preferences, as a map of preference id to value. Values are always strings, including booleans and numbers. The set of keys present depends on which preferences have been set for the budget, so callers should treat any individual key as optional
+   *         content:
+   *           application/json:
+   *             schema:
+   *               required:
+   *                 - data
+   *               type: object
+   *               properties:
+   *                 data:
+   *                   type: object
+   *                   additionalProperties:
+   *                     type: string
+   *               examples:
+   *                 - data:
+   *                     dateFormat: 'MM/dd/yyyy'
+   *                     numberFormat: 'comma-dot'
+   *                     hideFraction: 'false'
+   *                     firstDayOfWeekIdx: '0'
+   *                     budgetType: 'rollover'
+   *       '404':
+   *         $ref: '#/components/responses/404'
+   *       '500':
+   *         $ref: '#/components/responses/500'
+   */
+  router.get('/budgets/:budgetSyncId/preferences', async (req, res, next) => {
+    try {
+      res.json({ data: await res.locals.budget.getPreferences() });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /**
+   * @swagger
    * /budgets/{budgetSyncId}/export:
    *   get:
    *     summary: "(⚠️ Unofficial) Exports the budget data as a zip file containing db.sqlite and metadata.json files."

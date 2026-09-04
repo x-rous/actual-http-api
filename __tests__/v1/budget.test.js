@@ -113,6 +113,10 @@ describe('Budget Module', () => {
       createTag: jest.fn().mockResolvedValue({ id: 'tag2', tag: 'newtag' }),
       updateTag: jest.fn().mockResolvedValue({ id: 'tag1', tag: 'updated' }),
       deleteTag: jest.fn().mockResolvedValue(undefined),
+      getPreferences: jest.fn().mockResolvedValue({
+        dateFormat: 'MM/dd/yyyy',
+        numberFormat: 'comma-dot',
+      }),
       getNote: jest.fn().mockResolvedValue({ id: 'cat1', note: 'Category note' }),
       updateNote: jest.fn().mockResolvedValue(undefined),
       shutdown: jest.fn(),
@@ -902,6 +906,20 @@ describe('Budget Module', () => {
       const budgets = await budget.getBudgets();
       expect(budgets).toHaveLength(1);
       expect(budgets[0].id).toBe('budget1');
+    });
+
+    it('should get budget preferences', async () => {
+      const preferences = await budget.getPreferences();
+      expect(mockActualApi.getPreferences).toHaveBeenCalled();
+      expect(preferences).toEqual({
+        dateFormat: 'MM/dd/yyyy',
+        numberFormat: 'comma-dot',
+      });
+    });
+
+    it('should propagate errors from getPreferences', async () => {
+      mockActualApi.getPreferences.mockRejectedValueOnce(new Error('No budget file is open'));
+      await expect(budget.getPreferences()).rejects.toThrow('No budget file is open');
     });
   });
 

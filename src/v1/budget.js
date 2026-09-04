@@ -342,6 +342,10 @@ async function Budget(budgetSyncId, budgetEncryptionPassword) {
     return actualApi.getServerVersion();
   }
 
+  async function getPreferences() {
+    return actualApi.getPreferences();
+  }
+
   async function getIDByName(type, name) {
     return actualApi.getIDByName(type, name);
   }
@@ -501,6 +505,7 @@ async function Budget(budgetSyncId, budgetEncryptionPassword) {
     deleteSchedule: deleteSchedule,
     getBudgets: getBudgets,
     getServerVersion: getServerVersion,
+    getPreferences: getPreferences,
     getIDByName: getIDByName,
     getTags: getTags,
     createTag: createTag,
