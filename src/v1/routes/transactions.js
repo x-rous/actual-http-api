@@ -1,5 +1,7 @@
 const { isEmpty, paginate, validatePaginationParameters } = require('../../utils/utils');
 
+const PAYEE_NAME_NORMALIZATIONS = ['original', 'title-case'];
+
 /**
  * @swagger
  * tags:
@@ -330,6 +332,11 @@ module.exports = (router) => {
   *               reimportDeleted:
   *                 type: boolean
   *                 default: false
+  *               payeeNameNormalization:
+  *                 type: string
+  *                 enum: [title-case, original]
+  *                 default: title-case
+  *                 description: 'How `payee_name` is normalized before import. `title-case` converts it to title case, `original` keeps it exactly as supplied (useful for acronyms such as "NY" or "BC")'
    *             examples:
    *               - transactions:
    *                 - account: "729cb492-4eab-468b-9522-75d455cded22"
@@ -341,6 +348,7 @@ module.exports = (router) => {
   *                 defaultCleared: true
   *                 dryRun: false
   *                 reimportDeleted: false
+  *                 payeeNameNormalization: 'title-case'
    *     responses:
    *       '201':
    *         description: Ids of transactions add and updated
@@ -389,11 +397,13 @@ module.exports = (router) => {
   router.post('/budgets/:budgetSyncId/accounts/:accountId/transactions/import', async (req, res, next) => {
     try {
       validateTransactionsArray(req.body.transactions);
+      validatePayeeNameNormalization(req.body.payeeNameNormalization);
       await validateAccountExists(res, req.params.accountId);
       const options = {
         defaultCleared: req.body.defaultCleared ?? true,
         dryRun: req.body.dryRun ?? false,
         reimportDeleted: req.body.reimportDeleted ?? false,
+        payeeNameNormalization: req.body.payeeNameNormalization ?? 'title-case',
       };
       res.json({'data': await res.locals.budget.importTransactions(req.params.accountId, req.body.transactions, options)}).status(201);
     } catch(err) {
@@ -582,6 +592,13 @@ module.exports = (router) => {
   function validateTransactionsArray(transactions) {
     if (transactions === undefined || !transactions.length) {
       throw new Error('List of transactions is required');
+    }
+  }
+
+  function validatePayeeNameNormalization(payeeNameNormalization) {
+    if (payeeNameNormalization !== undefined
+      && !PAYEE_NAME_NORMALIZATIONS.includes(payeeNameNormalization)) {
+      throw new Error(`payeeNameNormalization must be one of ${PAYEE_NAME_NORMALIZATIONS.join(', ')}`);
     }
   }
 }
