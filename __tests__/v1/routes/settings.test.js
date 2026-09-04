@@ -50,6 +50,7 @@ describe('Settings Routes', () => {
       json: jest.fn().mockReturnThis(),
       status: jest.fn().mockReturnThis(),
       setHeader: jest.fn().mockReturnThis(),
+      send: jest.fn().mockReturnThis(),
       end: jest.fn(),
       locals: {
         budget: mockBudget,
@@ -187,17 +188,14 @@ describe('Settings Routes', () => {
       const handler = handlers['GET /budgets/:budgetSyncId/export'];
       mockBudget.exportData = jest.fn().mockResolvedValueOnce({
         fileName: 'budget.zip',
-        fileStream: {
-          pipe: jest.fn().mockReturnThis(),
-          finalize: jest.fn(),
-          on: jest.fn(),
-        },
+        fileBuffer: Buffer.from([1, 2, 3]),
       });
 
       await handler(mockReq, mockRes, mockNext);
 
       expect(mockBudget.exportData).toHaveBeenCalled();
       expect(mockRes.setHeader).toHaveBeenCalled();
+      expect(mockRes.send).toHaveBeenCalledWith(Buffer.from([1, 2, 3]));
     });
 
     it('should handle errors from exportBudget', async () => {
@@ -220,11 +218,7 @@ describe('Settings Routes', () => {
       const handler = handlers['GET /budgets/:budgetSyncId/export'];
       mockBudget.exportData = jest.fn().mockResolvedValueOnce({
         fileName: 'budget.zip',
-        fileStream: {
-          pipe: jest.fn().mockReturnThis(),
-          finalize: jest.fn(),
-          on: jest.fn(),
-        },
+        fileBuffer: Buffer.from([1, 2, 3]),
       });
 
       await handler(mockReq, mockRes, mockNext);
@@ -237,6 +231,7 @@ describe('Settings Routes', () => {
         'Content-Disposition',
         expect.stringContaining('attachment')
       );
+      expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Length', 3);
     });
   });
 });

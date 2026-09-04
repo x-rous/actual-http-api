@@ -10,8 +10,5 @@ module.exports = {
   testMatch: [
     '**/__tests__/**/*.js',
     '**/?(*.)+(spec|test).js',
-  ],
-  moduleNameMapper: {
-    '^archiver$': '<rootDir>/__mocks__/archiver-shim.js'
-  }
+  ]
 };
