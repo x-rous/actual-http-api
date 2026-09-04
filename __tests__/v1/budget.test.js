@@ -60,6 +60,12 @@ describe('Budget Module', () => {
       deleteAccount: jest.fn().mockResolvedValue(undefined),
       closeAccount: jest.fn().mockResolvedValue(undefined),
       reopenAccount: jest.fn().mockResolvedValue(undefined),
+      getAccountGroups: jest.fn().mockResolvedValue([
+        { id: 'ag1', name: 'Everyday Banking' }
+      ]),
+      createAccountGroup: jest.fn().mockResolvedValue('ag2'),
+      updateAccountGroup: jest.fn().mockResolvedValue(undefined),
+      deleteAccountGroup: jest.fn().mockResolvedValue(undefined),
       getTransactions: jest.fn().mockResolvedValue([
         { id: 'txn1', amount: 100, payee: 'Store' }
       ]),
@@ -301,6 +307,24 @@ describe('Budget Module', () => {
       expect(accounts[0].id).toBe('acc1');
     });
 
+    it('should select account_group_id so grouped accounts are identifiable', async () => {
+      runAqlQuery.mockResolvedValueOnce({
+        data: [
+          { id: 'acc1', name: 'Checking', offbudget: false, closed: false, account_group_id: 'ag1' }
+        ]
+      });
+
+      const accounts = await budget.getAccounts();
+
+      const selectCall = mockActualApi.q.mock.results
+        .map(result => result.value.select)
+        .find(select => select.mock.calls.length > 0);
+      expect(selectCall).toHaveBeenCalledWith(
+        expect.arrayContaining(['id', 'name', 'offbudget', 'closed', 'account_group_id'])
+      );
+      expect(accounts[0].account_group_id).toBe('ag1');
+    });
+
     it('should get accounts with balances when includeBalances is true', async () => {
       runAqlQuery
         .mockResolvedValueOnce({
@@ -456,6 +480,37 @@ describe('Budget Module', () => {
     it('should reopen an account', async () => {
       await budget.reopenAccount('acc1');
       expect(mockActualApi.reopenAccount).toHaveBeenCalledWith('acc1');
+    });
+
+    it('should get account groups', async () => {
+      const result = await budget.getAccountGroups();
+      expect(mockActualApi.getAccountGroups).toHaveBeenCalled();
+      expect(result).toEqual([{ id: 'ag1', name: 'Everyday Banking' }]);
+    });
+
+    it('should get a single account group by id', async () => {
+      const result = await budget.getAccountGroup('ag1');
+      expect(result).toEqual({ id: 'ag1', name: 'Everyday Banking' });
+    });
+
+    it('should return undefined for an unknown account group id', async () => {
+      const result = await budget.getAccountGroup('nonexistent');
+      expect(result).toBeUndefined();
+    });
+
+    it('should create an account group', async () => {
+      await budget.createAccountGroup({ name: 'Savings' });
+      expect(mockActualApi.createAccountGroup).toHaveBeenCalledWith({ name: 'Savings' });
+    });
+
+    it('should update an account group', async () => {
+      await budget.updateAccountGroup('ag1', { name: 'Renamed' });
+      expect(mockActualApi.updateAccountGroup).toHaveBeenCalledWith('ag1', { name: 'Renamed' });
+    });
+
+    it('should delete an account group', async () => {
+      await budget.deleteAccountGroup('ag1');
+      expect(mockActualApi.deleteAccountGroup).toHaveBeenCalledWith('ag1');
     });
   });
 
