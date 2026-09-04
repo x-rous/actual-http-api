@@ -33,6 +33,11 @@ describe('Settings Routes', () => {
         maxMonthsOfHistory: 24,
       }),
       exportBudget: jest.fn().mockResolvedValue('exported-data'),
+      getPreferences: jest.fn().mockResolvedValue({
+        dateFormat: 'MM/dd/yyyy',
+        numberFormat: 'comma-dot',
+        hideFraction: 'false',
+      }),
     };
 
     mockReq = {
@@ -104,6 +109,63 @@ describe('Settings Routes', () => {
       await handler(mockReq, mockRes, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('GET /budgets/:budgetSyncId/preferences', () => {
+    it('should register the route', () => {
+      const settingsModule = require('../../../src/v1/routes/settings');
+      settingsModule(mockRouter);
+
+      expect(mockRouter.get).toHaveBeenCalledWith(
+        '/budgets/:budgetSyncId/preferences',
+        expect.any(Function)
+      );
+    });
+
+    it('should return the budget preferences', async () => {
+      const settingsModule = require('../../../src/v1/routes/settings');
+      settingsModule(mockRouter);
+
+      const handler = handlers['GET /budgets/:budgetSyncId/preferences'];
+
+      await handler(mockReq, mockRes, mockNext);
+
+      expect(mockBudget.getPreferences).toHaveBeenCalled();
+      expect(mockRes.json).toHaveBeenCalledWith({
+        data: {
+          dateFormat: 'MM/dd/yyyy',
+          numberFormat: 'comma-dot',
+          hideFraction: 'false',
+        },
+      });
+    });
+
+    it('should return an empty object when no preferences are set', async () => {
+      const settingsModule = require('../../../src/v1/routes/settings');
+      settingsModule(mockRouter);
+
+      const handler = handlers['GET /budgets/:budgetSyncId/preferences'];
+      mockBudget.getPreferences.mockResolvedValueOnce({});
+
+      await handler(mockReq, mockRes, mockNext);
+
+      expect(mockRes.json).toHaveBeenCalledWith({ data: {} });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should forward errors to next', async () => {
+      const settingsModule = require('../../../src/v1/routes/settings');
+      settingsModule(mockRouter);
+
+      const handler = handlers['GET /budgets/:budgetSyncId/preferences'];
+      const error = new Error('No budget file is open');
+      mockBudget.getPreferences.mockRejectedValueOnce(error);
+
+      await handler(mockReq, mockRes, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+      expect(mockRes.json).not.toHaveBeenCalled();
     });
   });
 
