@@ -16,6 +16,7 @@ router.use('/budgets/:budgetSyncId', authorizeRequest, async (req, res, next) =>
 
 require('./budget-months')(router);
 require('./accounts')(router);
+require('./account-groups')(router);
 require('./transactions')(router);
 require('./categories')(router);
 require('./rules')(router);

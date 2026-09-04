@@ -80,7 +80,7 @@ async function Budget(budgetSyncId, budgetEncryptionPassword) {
 
     const accounts = (await runAqlQuery(
       actualApi.q('accounts')
-        .select(['id', 'name', 'offbudget', 'closed'])
+        .select(['id', 'name', 'offbudget', 'closed', 'account_group_id'])
         .filter(filter)
     ))?.data || [];
 
@@ -143,6 +143,27 @@ async function Budget(budgetSyncId, budgetEncryptionPassword) {
 
   async function reopenAccount(accountId) {
     return actualApi.reopenAccount(accountId);
+  }
+
+  async function getAccountGroups() {
+    return actualApi.getAccountGroups();
+  }
+
+  async function getAccountGroup(accountGroupId) {
+    const accountGroups = await getAccountGroups();
+    return accountGroups.find((accountGroup) => accountGroupId == accountGroup.id);
+  }
+
+  async function createAccountGroup(accountGroup) {
+    return actualApi.createAccountGroup(accountGroup);
+  }
+
+  async function updateAccountGroup(accountGroupId, accountGroup) {
+    return actualApi.updateAccountGroup(accountGroupId, accountGroup);
+  }
+
+  async function deleteAccountGroup(accountGroupId) {
+    return actualApi.deleteAccountGroup(accountGroupId);
   }
 
   async function getTransactions(accountId, sinceDate, optionalUntilDate) {
@@ -469,6 +490,11 @@ async function Budget(budgetSyncId, budgetEncryptionPassword) {
     deleteAccount: deleteAccount,
     closeAccount: closeAccount,
     reopenAccount: reopenAccount,
+    getAccountGroups: getAccountGroups,
+    getAccountGroup: getAccountGroup,
+    createAccountGroup: createAccountGroup,
+    updateAccountGroup: updateAccountGroup,
+    deleteAccountGroup: deleteAccountGroup,
     getTransactions: getTransactions,
     addTransaction: addTransaction,
     addTransactions: addTransactions,

@@ -53,6 +53,10 @@ const { isEmpty, formatDateToISOString, parseBoolean } = require('../../utils/ut
   *           type: boolean
   *         closed:
   *           type: boolean
+  *         account_group_id:
+  *           type: string
+  *           nullable: true
+  *           description: Id of the account group this account belongs to, or null when ungrouped
   *         clearedBalance:
   *           type: integer
   *           description: Cleared balance (only included when include_balances=true)
